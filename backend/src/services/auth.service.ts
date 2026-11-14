@@ -36,7 +36,7 @@ export class AuthService {
         phone: data.phone,
         role: data.role ?? 'MEMBER',
         emailVerifyToken,
-        isEmailVerified: false,
+        isEmailVerified: true,
       },
       select: {
         id: true, email: true, firstName: true, lastName: true,

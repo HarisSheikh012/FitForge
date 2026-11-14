@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { Link, useNavigate } from 'react-hook-form';
 import { Mail, Lock, User, AlertCircle, ArrowRight, Phone } from 'lucide-react';
 import { api } from '../../lib/axios';
 
@@ -20,7 +19,7 @@ export const Register: React.FC = () => {
       firstName: '',
       lastName: '',
       phone: '',
-      role: 'GYM_OWNER', // default sign up role for register page
+      role: 'MEMBER', // Public registration is strictly for normal gym members
     },
   });
 
@@ -31,7 +30,12 @@ export const Register: React.FC = () => {
       await api.post('/auth/register', data);
       setSuccess(true);
     } catch (err: any) {
-      setError(err.response?.data?.message ?? 'Registration failed. Please check details.');
+      const apiErrors = err.response?.data?.errors;
+      if (Array.isArray(apiErrors) && apiErrors.length > 0) {
+        setError(apiErrors.map((e: any) => e.message).join('. '));
+      } else {
+        setError(err.response?.data?.message ?? 'Registration failed. Please check details.');
+      }
     } finally {
       setLoading(false);
     }
@@ -43,16 +47,16 @@ export const Register: React.FC = () => {
         <div className="w-12 h-12 bg-emerald-50 rounded-full flex items-center justify-center mx-auto text-emerald-500 font-bold text-xl">
           ✓
         </div>
-        <h3 className="text-xl font-bold text-slate-800 dark:text-zinc-100">Verify your email</h3>
+        <h3 className="text-xl font-bold text-slate-800 dark:text-zinc-100">Account Created Successfully!</h3>
         <p className="text-sm text-slate-500 dark:text-zinc-400">
-          We sent a verification link to your registered email address. Please follow the instructions to complete activation.
+          Your account is active and ready to use. Click below to sign in to your dashboard.
         </p>
         <div className="pt-4">
           <a
             href="/login"
             className="inline-block py-2.5 px-6 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-bold transition-colors"
           >
-            Back to login
+            Sign In Now
           </a>
         </div>
       </div>
@@ -62,9 +66,9 @@ export const Register: React.FC = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="text-xl font-bold text-slate-800 dark:text-zinc-100">Create account</h3>
+        <h3 className="text-xl font-bold text-slate-800 dark:text-zinc-100">Member Registration</h3>
         <p className="text-xs font-semibold text-slate-400 dark:text-zinc-500 mt-1">
-          Register your gym and start managing today
+          Create your gym member account
         </p>
       </div>
 
@@ -168,11 +172,19 @@ export const Register: React.FC = () => {
               {...register('password', {
                 required: 'Password is required',
                 minLength: { value: 8, message: 'Minimum 8 characters' },
+                validate: {
+                  hasUpper: (v: string) => /[A-Z]/.test(v) || 'Must contain at least 1 uppercase letter',
+                  hasNumber: (v: string) => /[0-9]/.test(v) || 'Must contain at least 1 number',
+                  hasSpecial: (v: string) => /[^A-Za-z0-9]/.test(v) || 'Must contain at least 1 special character (!@#$%^&*)',
+                },
               })}
               className="w-full text-sm pl-9 pr-4 py-2.5 bg-slate-50 dark:bg-zinc-900 border border-slate-100 dark:border-zinc-800 rounded-xl focus:outline-none focus:ring-1 focus:ring-blue-500 transition-all placeholder-slate-400 text-slate-700"
-              placeholder="••••••••"
+              placeholder="e.g. FitForge@123"
             />
           </div>
+          <p className="text-[11px] text-slate-400 dark:text-zinc-500 mt-1">
+            At least 8 chars with 1 uppercase, 1 number & 1 special character (e.g. <span className="font-mono text-blue-500">FitForge@123</span>)
+          </p>
           {errors.password && (
             <p className="text-red-500 text-xs font-semibold mt-1">{errors.password.message}</p>
           )}

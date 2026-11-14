@@ -345,7 +345,7 @@ npm run preview            # Preview production build locally
 | `APP_NAME` | Application name | `FitForge` |
 | `APP_URL` | Backend base URL | `http://localhost:4000` |
 | `FRONTEND_URL` | Frontend URL for CORS | `http://localhost:5173` |
-| `DATABASE_URL` | PostgreSQL connection string | `postgresql://user:pass@localhost:5432/fitforge_db` |
+| `DATABASE_URL` | PostgreSQL connection string | `postgresql://user:pass@localhost:5433/fitforge_db` |
 | `JWT_ACCESS_SECRET` | Access token signing secret (≥32 chars) | *(generate securely)* |
 | `JWT_REFRESH_SECRET` | Refresh token signing secret (≥32 chars) | *(generate securely)* |
 | `JWT_ACCESS_EXPIRY` | Access token TTL | `15m` |

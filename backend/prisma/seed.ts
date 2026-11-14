@@ -106,8 +106,8 @@ async function main() {
     create: {
       email: 'owner@fitlife.com',
       password: ownerPassword,
-      firstName: 'Ahmed',
-      lastName: 'Khan',
+      firstName: 'Haris',
+      lastName: 'Babar',
       phone: '+92-300-1234567',
       role: UserRole.GYM_OWNER,
       isEmailVerified: true,

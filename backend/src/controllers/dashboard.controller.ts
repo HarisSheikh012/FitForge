@@ -88,26 +88,24 @@ export class DashboardController {
           },
         }),
 
-        // Attendance last 7 days
-        prisma.$queryRaw<{ date: string; count: bigint }[]>`
-          SELECT DATE(check_in) as date, COUNT(*) as count
-          FROM attendances
-          WHERE ${gymId ? `gym_id = '${gymId}' AND` : ''}
-            check_in >= ${new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000)}
-          GROUP BY DATE(check_in)
-          ORDER BY date ASC
-        `,
+        // Attendance last 7 days (pure Prisma query)
+        prisma.attendance.findMany({
+          where: {
+            ...gymFilter,
+            checkIn: { gte: new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000) },
+          },
+          select: { checkIn: true },
+        }),
 
-        // Revenue last 6 months
-        prisma.$queryRaw<{ month: string; revenue: number }[]>`
-          SELECT TO_CHAR(paid_at, 'Mon YYYY') as month, SUM(amount) as revenue
-          FROM payments
-          WHERE status = 'COMPLETED'
-            ${gymId ? `AND gym_id = '${gymId}'` : ''}
-            AND paid_at >= ${subMonths(today, 6)}
-          GROUP BY TO_CHAR(paid_at, 'Mon YYYY'), DATE_TRUNC('month', paid_at)
-          ORDER BY DATE_TRUNC('month', paid_at) ASC
-        `,
+        // Revenue last 6 months (pure Prisma query)
+        prisma.payment.findMany({
+          where: {
+            ...gymFilter,
+            status: 'COMPLETED',
+            paidAt: { gte: subMonths(today, 6) },
+          },
+          select: { paidAt: true, amount: true },
+        }),
 
         // Membership status breakdown
         prisma.member.groupBy({
@@ -116,6 +114,40 @@ export class DashboardController {
           _count: { id: true },
         }),
       ]);
+
+      // Process attendance by day for chart
+      const attendanceMap = new Map<string, number>();
+      for (let i = 6; i >= 0; i--) {
+        const d = format(new Date(today.getTime() - i * 24 * 60 * 60 * 1000), 'yyyy-MM-dd');
+        attendanceMap.set(d, 0);
+      }
+      attendanceByDay.forEach((a) => {
+        const d = format(new Date(a.checkIn), 'yyyy-MM-dd');
+        if (attendanceMap.has(d)) {
+          attendanceMap.set(d, (attendanceMap.get(d) ?? 0) + 1);
+        }
+      });
+      const attendanceChartData = Array.from(attendanceMap.entries()).map(([date, count]) => ({
+        date,
+        count,
+      }));
+
+      // Process revenue by month for chart
+      const revenueMap = new Map<string, number>();
+      for (let i = 5; i >= 0; i--) {
+        const m = format(subMonths(today, i), 'MMM yyyy');
+        revenueMap.set(m, 0);
+      }
+      revenueByMonth.forEach((p) => {
+        if (p.paidAt) {
+          const m = format(new Date(p.paidAt), 'MMM yyyy');
+          revenueMap.set(m, (revenueMap.get(m) ?? 0) + Number(p.amount));
+        }
+      });
+      const revenueChartData = Array.from(revenueMap.entries()).map(([month, revenue]) => ({
+        month,
+        revenue,
+      }));
 
       sendSuccess(res, {
         stats: {
@@ -141,14 +173,8 @@ export class DashboardController {
           } : null,
         })),
         charts: {
-          attendance: attendanceByDay.map((r) => ({
-            date: r.date,
-            count: Number(r.count),
-          })),
-          revenue: revenueByMonth.map((r) => ({
-            month: r.month,
-            revenue: Number(r.revenue),
-          })),
+          attendance: attendanceChartData,
+          revenue: revenueChartData,
           membershipStatus: membershipByStatus.map((s) => ({
             status: s.membershipStatus,
             count: s._count.id,
